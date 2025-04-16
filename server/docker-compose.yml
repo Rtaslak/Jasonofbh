@@ -1,0 +1,19 @@
+
+version: '3'
+
+services:
+  rfid-websocket-server:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-localhost}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-jewelry/rfid/}
+      - MQTT_USE_TLS=${MQTT_USE_TLS:-false}
+      - DEBUG=${DEBUG:-false}
+    restart: unless-stopped
