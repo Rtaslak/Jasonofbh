@@ -22,7 +22,7 @@ export function useDepartmentData() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await apiClient.get<Department[]>('/api/departments'); // Fetch from your API
+        const response = await apiClient.get<Department[]>('/departments'); // Fetch from your API
         setDepartments(response); // Real data from the backend
       } catch (error) {
         console.error('Error fetching departments:', error);

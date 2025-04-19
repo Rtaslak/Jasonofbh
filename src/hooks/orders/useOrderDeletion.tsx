@@ -1,8 +1,6 @@
-
 import { useState } from "react";
-import { orders } from "@/utils/orders/orderStorage";
 import { toast } from "sonner";
-import { saveOrdersToLocalStorage } from "@/utils/orders/orderStorage";
+import { orderService } from "@/services/orderService";
 
 export function useOrderDeletion(
   setOrdersList: (orders: any[]) => void,
@@ -14,25 +12,15 @@ export function useOrderDeletion(
   const handleDeleteOrder = async (orderId: string) => {
     try {
       setIsDeleting(true);
-      
-      // Find the order
-      const orderIndex = orders.findIndex(order => order.id === orderId);
-      
-      if (orderIndex === -1) {
-        toast.error("Order not found");
-        return;
-      }
-      
-      // Remove the order
-      orders.splice(orderIndex, 1);
-      
-      // Save changes to localStorage
-      saveOrdersToLocalStorage();
-      
-      // Update UI
-      setOrdersList([...orders]);
-      
+
+      // Call real API to delete
+      await orderService.deleteOrder(orderId);
+
       toast.success("Order deleted successfully");
+
+      if (refreshOrders) {
+        refreshOrders();
+      }
     } catch (error) {
       console.error("Error deleting order:", error);
       toast.error("Failed to delete order");
@@ -46,36 +34,24 @@ export function useOrderDeletion(
       toast.error("No orders selected");
       return;
     }
-    
+
     try {
       setIsDeleting(true);
-      
-      // Convert Set to Array for easier processing
+
+      // Delete all selected orders via API
       const orderIdsToDelete = Array.from(selectedOrderIds);
-      
-      // Filter out the selected orders
-      const remainingOrders = orders.filter(order => !orderIdsToDelete.includes(order.id));
-      
-      // Update the orders array
-      orders.length = 0;
-      orders.push(...remainingOrders);
-      
-      // Save changes to localStorage
-      saveOrdersToLocalStorage();
-      
-      // Update UI
-      setOrdersList([...orders]);
-      
+      await Promise.all(orderIdsToDelete.map(id => orderService.deleteOrder(id)));
+
+      toast.success(`${orderIdsToDelete.length} orders deleted successfully`);
+
       // Clear selection
       clearSelection();
-      
-      toast.success(`${orderIdsToDelete.length} orders deleted successfully`);
-      
+
       // Refresh UI
       if (refreshOrders) refreshOrders();
     } catch (error) {
-      console.error("Error deleting orders:", error);
-      toast.error("Failed to delete orders");
+      console.error("Error deleting selected orders:", error);
+      toast.error("Failed to delete selected orders");
     } finally {
       setIsDeleting(false);
     }

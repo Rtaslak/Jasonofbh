@@ -21,60 +21,48 @@ export const orderService = {
    * Create a new order with form data and images
    */
   createOrder: async (formData: FormValues, images: File[] = []): Promise<Order> => {
-    // If there are images, we need to use FormData instead of JSON
     if (images.length > 0) {
       const formDataWithFiles = new FormData();
-      
-      // Add form data as JSON
+
       formDataWithFiles.append('orderData', JSON.stringify(formData));
-      
-      // Add each image to the FormData
+
       images.forEach((image, index) => {
         formDataWithFiles.append(`image-${index}`, image);
       });
-      
-      // Custom request with FormData
+
       return apiClient.post<Order>("orders", formDataWithFiles, {
         headers: {
-          // Don't set content-type with FormData, browser will set it with boundary
+          // Let browser set content-type (multipart/form-data)
         }
       });
     }
-    
-    // No images, just send JSON
-    return apiClient.post<Order>("orders", { 
-      orderData: formData 
-    });
+
+    // ✅ No images: send plain JSON
+    return apiClient.post<Order>("orders", formData);
   },
 
   /**
    * Update an existing order
    */
   updateOrder: async (id: string, formData: FormValues, images: File[] = []): Promise<Order> => {
-    // If there are images, we need to use FormData instead of JSON
     if (images.length > 0) {
       const formDataWithFiles = new FormData();
-      
-      // Add form data as JSON
+
       formDataWithFiles.append('orderData', JSON.stringify(formData));
-      
-      // Add each image to the FormData
+
       images.forEach((image, index) => {
         formDataWithFiles.append(`image-${index}`, image);
       });
-      
-      // Custom request with FormData
+
       return apiClient.put<Order>(`orders/${id}`, formDataWithFiles, {
         headers: {
-          // Don't set content-type with FormData, browser will set it with boundary
+          // Let browser set content-type
         }
       });
     }
-    
-    // No images, just send JSON
-    return apiClient.put<Order>(`orders/${id}`, { 
-      orderData: formData 
-    });
+
+    // ✅ No images: send plain JSON
+    return apiClient.put<Order>(`orders/${id}`, formData);
   },
 
   /**
@@ -96,16 +84,12 @@ export const orderService = {
    */
   uploadOrderImages: async (orderId: string, images: File[]): Promise<Order> => {
     const formData = new FormData();
-    
+
     images.forEach((image, index) => {
       formData.append(`image-${index}`, image);
     });
-    
-    return apiClient.post<Order>(`orders/${orderId}/images`, formData, {
-      headers: {
-        // Don't set content-type with FormData, browser will set it with boundary
-      }
-    });
+
+    return apiClient.post<Order>(`orders/${orderId}/images`, formData);
   },
 
   /**

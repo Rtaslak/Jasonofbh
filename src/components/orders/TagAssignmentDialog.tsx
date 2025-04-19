@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tag, Scan, Loader2 } from "lucide-react";
-import { useMqtt } from "@/context/MqttContext";
+import { useMqttConnection } from "@/context/mqtt/useMqttConnection";
+
 import { toast } from "sonner";
 
 interface TagAssignmentDialogProps {
@@ -28,7 +29,8 @@ export function TagAssignmentDialog({
 }: TagAssignmentDialogProps) {
   const [tagId, setTagId] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
-  const { latestEvent } = useMqtt();
+  const { latestEvent } = useMqttConnection();
+
 
   useEffect(() => {
     if (!open) return;

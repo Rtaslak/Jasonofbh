@@ -33,7 +33,7 @@ export function OrderRowActions({ order, onDelete, onAssignTag }: OrderRowAction
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate(`/order/${order.id}`);
+    navigate(`/orders/${order.id}`);
   };
 
   const handleDownloadPDF = () => {

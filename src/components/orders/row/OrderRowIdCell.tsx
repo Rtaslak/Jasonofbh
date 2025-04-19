@@ -25,7 +25,7 @@ export function OrderRowIdCell({ order, onOrderIdClick }: OrderRowIdCellProps) {
         className="font-medium text-foreground hover:text-primary cursor-pointer transition-colors" 
         onClick={handleClick}
       >
-        {order.id}
+        {order.orderNumber}
       </span>
       
       <OrderPipelineDialog

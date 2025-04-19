@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormValues } from "./FormSchema";
@@ -16,6 +15,12 @@ interface OrderFormSubmitProps {
   isFormValid: boolean;
 }
 
+interface CreatedOrderResponse {
+  id: string;
+  orderNumber: number;
+  [key: string]: any;
+}
+
 export function OrderFormSubmit({
   isEditing,
   orderId,
@@ -29,8 +34,7 @@ export function OrderFormSubmit({
 }: OrderFormSubmitProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    // Only proceed if the form is valid
+  const handleSubmit = async () => {
     if (!isFormValid) {
       showNotification(
         "Validation Error", 
@@ -38,43 +42,44 @@ export function OrderFormSubmit({
       );
       return;
     }
-    
-    // Set submitting state to show loading indicator
+
     setIsSubmitting(true);
-    
+
     try {
-      // Use setTimeout to prevent UI freezing during order processing
-      setTimeout(() => {
-        if (isEditing && orderId) {
-          // Include images in the order update
-          updateExistingOrder(orderId, data, currentUserEmail, images);
-          showNotification(
-            "Order Updated", 
-            `Order #${orderId} has been successfully updated.`
-          );
-        } else {
-          // Include images in the new order
-          const newOrderId = createNewOrder(data, currentUserEmail, currentUserName, images);
-          showNotification(
-            "New Order Submitted", 
-            `Order #${newOrderId} has been successfully created.`
-          );
-        }
-        
-        // Reset submitting state
-        setIsSubmitting(false);
-        onSuccess();
-      }, 50);
+      if (isEditing && orderId) {
+        await updateExistingOrder(orderId, data, currentUserEmail, images);
+        showNotification(
+          "Order Updated", 
+          `Order ${orderId} has been successfully updated.`
+        );
+      } else {
+        const newOrder: CreatedOrderResponse = await createNewOrder(
+          data,
+          currentUserEmail,
+          currentUserName,
+          images
+        );
+
+        const displayNumber = newOrder?.orderNumber ?? "unknown";
+
+        showNotification(
+          "New Order Submitted", 
+          `Order ${displayNumber} has been successfully created.`
+        );
+      }
+
+      onSuccess();
     } catch (error) {
       console.error("Error submitting order:", error);
       showNotification(
         "Submission Error",
         "There was a problem submitting your order. Please try again."
       );
+    } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Button 
       type="button" 

@@ -7,3 +7,14 @@ export interface SortConfig {
   field: SortField;
   direction: SortDirection;
 }
+export type ColumnVisibility = {
+  orderId?: boolean;
+  customer?: boolean;
+  status?: boolean;
+  dueDate?: boolean;
+  createdAt?: boolean;
+  salesperson?: boolean;
+  items?: boolean;
+  tagId?: boolean;
+  actions?: boolean;
+};

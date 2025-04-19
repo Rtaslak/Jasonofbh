@@ -1,11 +1,10 @@
-
 import { z } from "zod";
 import { addWeeks } from "date-fns";
 
-// Form schema definition for order form
+// 👉 Zod schema definition for the order form
 export const formSchema = z.object({
   storeLocation: z.string().min(1, "Store location is required"),
-  clientName: z.string().min(1, "Client name is required"), // Updated to be required
+  clientName: z.string().min(1, "Client name is required"),
   orderDate: z.date(),
   dueDate: z.date().optional(),
   designer: z.string().min(1, "Designer is required"),
@@ -25,16 +24,21 @@ export const formSchema = z.object({
   }),
   stoneDetails: z.string().optional(),
   additionalNotes: z.string().optional(),
+
+  // ✅ Backend-side fields added for DB processing
+  salesperson: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
+// 👉 TypeScript type inferred from Zod schema
 export type FormValues = z.infer<typeof formSchema>;
 
-// Get default due date (3 weeks from today)
+// 📅 Get default due date (3 weeks from now)
 export const getDefaultDueDate = (orderDate: Date = new Date()): Date => {
   return addWeeks(orderDate, 3);
 };
 
-// Updated store locations
+// 🏪 Store locations used in the dropdown
 export const storeLocations = [
   "Private Showroom(HQ)", 
   "Beverly Wilshire", 
@@ -43,25 +47,28 @@ export const storeLocations = [
   "Charlotte"
 ];
 
+// 🎨 Designers (used in designer select input)
 export const designers = [
   "Zach", "Kai", "Sebouh"
 ];
 
+// 📦 Product types (used in product type select input)
 export const productTypes = [
   "Ring", "Pendant", "Necklace", "Bracelet", "Earrings", "Chain", "Other"
 ];
 
+// 🧱 Metal types (used in metal type dropdown)
 export const metalTypes = [
   "10kt Gold", "14kt Gold", "18kt Gold", "22kt Gold", "24kt Gold", 
   "Platinum", "Silver", "Other"
 ];
 
-// Metal color options
+// 🎨 Metal color tone options
 export const metalColors = [
   "Yellow", "White", "Rose", "Black"
 ];
 
-// Required field indicator function
+// 🟡 Used for marking required fields in the UI
 export const isFieldRequired = (fieldName: string): boolean => {
   switch (fieldName) {
     case "storeLocation":
@@ -69,7 +76,7 @@ export const isFieldRequired = (fieldName: string): boolean => {
     case "productType":
     case "salePrice":
     case "metal.primaryMetal":
-    case "clientName": // Client name is a required field
+    case "clientName":
       return true;
     default:
       return false;

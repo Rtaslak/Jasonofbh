@@ -1,4 +1,3 @@
-
 export interface Station {
   id: string;
   name: string;
@@ -16,7 +15,7 @@ export interface Department {
   orders: string[]; // Order IDs assigned to this department
 }
 
-// Add a helper function to create a station object
+// ✅ Utility function to create a new Station
 export const createStation = (
   name: string,
   description: string,
@@ -27,11 +26,11 @@ export const createStation = (
     name,
     description,
     orderIds,
-    status: 'active'
+    status: 'active' // Default status
   };
 };
 
-// Add a helper function to create a department object
+// ✅ Utility function to create a new Department
 export const createDepartment = (
   id: number,
   name: string,

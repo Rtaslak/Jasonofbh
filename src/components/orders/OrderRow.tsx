@@ -49,7 +49,7 @@ export function OrderRow({
             className="font-medium text-foreground hover:text-primary cursor-pointer transition-colors" 
             onClick={() => onEdit(order.id)}
           >
-            {order.id}
+            {order.orderNumber ?? order.id}
           </span>
         </TableCell>
       )}

@@ -1,5 +1,6 @@
+// src/services/mqtt/types.ts
 
-// Define the RFID event types
+// ✅ RFID Event type
 export interface RfidEvent {
   tagId: string;
   readerId?: string;
@@ -10,7 +11,7 @@ export interface RfidEvent {
   departmentId?: number;
 }
 
-// Define reader information
+// ✅ Reader structure
 export interface RfidReader {
   id: string;
   status: 'online' | 'offline';
@@ -21,17 +22,17 @@ export interface RfidReader {
   }>;
 }
 
-// Define the connection status
+// ✅ Connection status types
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
 
-// Define the event handlers
+// ✅ Callback types
 export type StatusChangeCallback = (status: ConnectionStatus) => void;
 export type TagEventCallback = (event: RfidEvent) => void;
 export type OrderUpdateCallback = (order: any) => void;
 export type DepartmentUpdateCallback = (departments: any) => void;
 export type ReadersUpdateCallback = (readers: RfidReader[]) => void;
 
-// MQTT configuration type
+// ✅ MQTT Config
 export interface MqttConfig {
   brokerUrl: string;
   port: number;
@@ -42,8 +43,7 @@ export interface MqttConfig {
   useTls: boolean;
 }
 
-// WebSocket configuration type - Updated to match the MQTT config structure
-// since it's used interchangeably in the codebase
+// ✅ WebSocket-style Config (compatible with MQTT config)
 export interface WebSocketConfig {
   brokerUrl: string;
   port: number;
@@ -53,4 +53,12 @@ export interface WebSocketConfig {
   topicPrefix: string;
   useTls: boolean;
   websocketEndpoint?: string;
+}
+
+// ✅ Context shape for React MQTT Provider
+export interface MqttContextProps {
+  connectionStatus: ConnectionStatus;
+  latestEvent: RfidEvent | null;
+  connect: () => void;
+  disconnect: () => void;
 }

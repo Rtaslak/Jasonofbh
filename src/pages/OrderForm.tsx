@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +10,7 @@ import { ProductDetails } from "@/components/orders/form/ProductDetails";
 import { OrderFormContainer } from "@/components/orders/form/OrderFormContainer";
 import { OrderFormFooter } from "@/components/orders/form/OrderFormFooter";
 import { useOrderForm } from "@/hooks/useOrderForm";
+import { useOrdersData } from "@/hooks/orders/useOrdersData";
 
 export default function OrderForm() {
   const {
@@ -24,24 +24,26 @@ export default function OrderForm() {
     navigate,
     showNotification
   } = useOrderForm();
-  
+
+  const { refreshOrders } = useOrdersData(); // ✅ To refresh after submit
   const [isFormValid, setIsFormValid] = useState(false);
-  
+
   const currentUser = {
     name: "John Doe",
     email: "john@jasonofbh.com",
   };
-  
+
   const isValidUserEmail = validateEmail(currentUser.email);
-  
+
   const handleCancel = () => {
     navigate("/orders");
   };
 
   const handleSuccess = () => {
-    form.reset();
-    setImages([]);
-    navigate("/orders");
+    form.reset();           // ✅ Clear form fields
+    setImages([]);          // ✅ Clear attached images
+    refreshOrders();        // ✅ Refresh live order list
+    navigate("/orders");    // ✅ Redirect to orders page
   };
 
   if (!isValidUserEmail) {
@@ -53,37 +55,35 @@ export default function OrderForm() {
   }
 
   return (
-    <OrderFormContainer title={isEditing ? `Edit Order ${orderId}` : 'New Order'}>
+    <OrderFormContainer title={isEditing ? `Edit Order ${orderId}` : "New Order"}>
       <Form {...form}>
-        <form 
+        <form
           onSubmit={form.handleSubmit(
             (data) => {
-              // Form is valid, set the form validity state to true
-              setIsFormValid(true);
+              setIsFormValid(true); // ✅ Form is valid
               console.log("Form data valid:", data);
-            }, 
+            },
             (errors) => {
-              // Form has validation errors
-              setIsFormValid(false);
+              setIsFormValid(false); // ❌ Validation failed
               console.error("Form validation errors:", errors);
               showNotification(
-                "Validation Error", 
+                "Validation Error",
                 "Please fill out all required fields marked with an asterisk (*)"
               );
             }
-          )} 
+          )}
           className="space-y-8"
         >
           <SalesInformation control={form.control} />
-          
+
           <Separator className="my-8" />
-          
+
           <ProductInformation control={form.control} />
-          
+
           <Separator className="my-8" />
-          
+
           <ProductDetails control={form.control} />
-          
+
           <OrderFormFooter
             isEditing={isEditing}
             orderId={orderId}

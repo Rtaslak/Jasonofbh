@@ -1,6 +1,6 @@
-
 export type Order = {
   id: string;
+  orderNumber: number; // ✅ Add this line
   customer: string;
   email: string;
   createdAt: string;
@@ -9,9 +9,9 @@ export type Order = {
   items: string[];
   isEditing?: boolean;
   tagId?: string;
-  lastSeen?: number; // Timestamp when the tag was last scanned
-  
-  // Additional fields for detailed order information
+  lastSeen?: number;
+
+  // Additional fields...
   storeLocation?: string;
   designer?: string;
   serialNumber?: string;
@@ -20,7 +20,7 @@ export type Order = {
   metal?: {
     primaryMetal: string;
     secondaryMetal?: string;
-    isMultiTone?: boolean; // Made optional since we're not using the toggle
+    isMultiTone?: boolean;
     tones: {
       yellow: boolean;
       white: boolean;
@@ -37,11 +37,10 @@ export type Order = {
     type: string;
     size: number;
     lastModified: number;
-    dataUrl?: string; // Added dataUrl for displaying images
+    dataUrl?: string;
   }>;
-  
-  departmentId?: number; // Add departmentId to Order type
-  
+
+  departmentId?: number;
   departmentStatus?: {
     designers: boolean;
     jewelers: boolean;

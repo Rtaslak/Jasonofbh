@@ -19,8 +19,10 @@ app.use(express.json());
 // Optional: Define routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const orderRoutes = require('./routes/orders');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
