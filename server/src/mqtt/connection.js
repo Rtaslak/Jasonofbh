@@ -1,195 +1,130 @@
-
 const mqtt = require('mqtt');
+const fs = require('fs');
+const path = require('path');
 const { logDebug, logError } = require('../utils/logger');
+const { processRfidEvent } = require('./eventProcessing');
+const topics = require('./topics');
+const { mqttConfig } = require('./config');
 
-// Connect to MQTT broker with improved error handling and stability
 const connectToMqtt = (io) => {
-  const { mqttConfig } = require('./config');
-  
   try {
-    logDebug(`Connecting to MQTT broker at ${mqttConfig.brokerUrl}:${mqttConfig.port}`);
-    
-    // Configure MQTT connection options - improved for production
+    logDebug(`Connecting to MQTT broker at ${mqttConfig.brokerUrl}:${mqttConfig.port} (TLS: ${mqttConfig.useTls})`);
+
     const options = {
-      clientId: `rfid-server-${Math.random().toString(16).substring(2, 8)}`,
-      port: mqttConfig.port,
+      clientId: `rfid-server-${Math.random().toString(16).slice(2)}`,
       clean: true,
-      // In production, this should be true. For development with self-signed certs, false may be needed
-      rejectUnauthorized: process.env.NODE_ENV === 'production',
-      reconnectPeriod: 5000,      // Attempt to reconnect every 5 seconds
-      connectTimeout: 30000,      // 30 second timeout
-      keepalive: 60               // Keepalive every 60 seconds
+      reconnectPeriod: 5000,
+      connectTimeout: 30000,
+      keepalive: 60
     };
-    
-    // Add credentials if provided
-    if (mqttConfig.username && mqttConfig.password) {
-      options.username = mqttConfig.username;
-      options.password = mqttConfig.password;
-    } else {
-      logDebug('Warning: MQTT username or password not provided. Authentication may fail.');
+
+    if (mqttConfig.useTls === true || mqttConfig.useTls === 'true') {
+      try {
+        options.cert = fs.readFileSync(path.resolve(mqttConfig.certPath));
+        options.key = fs.readFileSync(path.resolve(mqttConfig.keyPath));
+        options.ca = fs.readFileSync(path.resolve(mqttConfig.caPath));
+        options.rejectUnauthorized = true;
+        logDebug('✅ TLS certs loaded successfully');
+      } catch (err) {
+        logError(`❌ Failed to load TLS certs: ${err.message}`);
+      }
     }
-    
-    // Build URL based on TLS setting
-    const protocol = mqttConfig.useTls ? 'mqtts://' : 'mqtt://';
-    const url = `${protocol}${mqttConfig.brokerUrl}`;
-    
-    logDebug(`MQTT URL: ${url}, Port: ${options.port}, Using TLS: ${mqttConfig.useTls}`);
-    
-    // Connect to the broker
-    const client = mqtt.connect(url, options);
-    
-    // Store Socket.IO instance globally
-    global.socketIo = io;
-    
-    // Handle connection events
+
+    const client = mqtt.connect(mqttConfig.brokerUrl, options);
+    if (io) client._socketIo = io;
+
+    // ✅ Store globally for reuse
+    global.mqttClient = client;
+
+    // ✅ On connect
     client.on('connect', () => {
-      logDebug('Connected to MQTT broker');
-      
-      // Subscribe to configured topics
-      const { topicPrefix } = mqttConfig;
-      const topics = [
-        `${topicPrefix}+/tagdata`,
-        `${topicPrefix}+/events`
-      ];
-      
-      topics.forEach(topic => {
+      const status = {
+        connected: true,
+        message: 'Connected to MQTT broker'
+      };
+      global.latestMqttStatus = status;
+      if (io) io.emit('mqtt_status', status);
+
+      const topicList = topics.getAllTopics();
+      logDebug(`📡 Subscribing to ${topicList.length} topics...`);
+
+      topicList.forEach(topic => {
         client.subscribe(topic, (err) => {
           if (err) {
-            logError(`Failed to subscribe to ${topic}: ${err.message}`);
+            logError(`❌ Failed to subscribe to ${topic}: ${err.message}`);
           } else {
-            logDebug(`Subscribed to topic: ${topic}`);
+            logDebug(`✅ Subscribed to ${topic}`);
           }
         });
       });
-      
-      // Broadcast connection status to all clients
-      if (io) {
-        io.emit('mqtt_status', { 
-          connected: true, 
-          message: 'Connected to MQTT broker'
-        });
-      }
     });
-    
-    // Handle error event
-    client.on('error', (err) => {
-      logError(`MQTT Client Error: ${err.message}`);
-      if (io) {
-        io.emit('mqtt_status', { 
-          connected: false, 
-          error: err.message 
-        });
-      }
-    });
-    
-    // Handle reconnect event
-    client.on('reconnect', () => {
-      logDebug('Attempting to reconnect to MQTT broker...');
-      if (io) {
-        io.emit('mqtt_status', { 
-          connected: false, 
-          message: 'Reconnecting to MQTT broker...'
-        });
-      }
-    });
-    
-    // Handle close event
-    client.on('close', () => {
-      logDebug('MQTT connection closed');
-      if (io) {
-        io.emit('mqtt_status', { 
-          connected: false, 
-          message: 'Disconnected from MQTT broker'
-        });
-      }
-    });
-    
-    // Forward MQTT messages to WebSocket clients
+
+    // ✅ On message
     client.on('message', (topic, message) => {
-      if (io) {
-        io.emit('mqtt-message', { 
-          topic, 
-          message: message.toString() 
-        });
+      try {
+        const parsed = JSON.parse(message.toString());
+        processRfidEvent(parsed, io); // Handles tag-to-order linking, emits to frontend
+      } catch (err) {
+        logError(`❌ Failed to parse MQTT message: ${err.message}`);
       }
     });
-    
-    // Handle graceful shutdown
-    process.on('SIGINT', () => {
-      logDebug('SIGINT received, closing MQTT connection...');
-      client.end(true, () => {
-        logDebug('MQTT connection closed cleanly');
-        process.exit(0);
-      });
+
+    // ✅ On error
+    client.on('error', (err) => {
+      const status = {
+        connected: false,
+        message: `MQTT error: ${err.message}`
+      };
+      global.latestMqttStatus = status;
+      if (io) io.emit('mqtt_status', status);
+      logError(`❌ MQTT Error: ${err.message}`);
     });
-    
+
+    // ✅ On close
+    client.on('close', () => {
+      const status = {
+        connected: false,
+        message: 'Disconnected from MQTT broker'
+      };
+      global.latestMqttStatus = status;
+      if (io) io.emit('mqtt_status', status);
+      logDebug('⚠️ MQTT connection closed');
+    });
+
+    // ✅ On reconnect
+    client.on('reconnect', () => {
+      const status = {
+        connected: false,
+        message: 'Reconnecting to MQTT broker...'
+      };
+      global.latestMqttStatus = status;
+      if (io) io.emit('mqtt_status', status);
+      logDebug('♻️ Reconnecting to MQTT broker...');
+    });
+
+    // ✅ On offline
+    client.on('offline', () => {
+      const status = {
+        connected: false,
+        message: 'MQTT client is offline'
+      };
+      global.latestMqttStatus = status;
+      if (io) io.emit('mqtt_status', status);
+      logDebug('📴 MQTT client went offline');
+    });
+
     return client;
-  } catch (error) {
-    logError(`MQTT Connection Error: ${error.message}`);
-    if (io) {
-      io.emit('mqtt_status', { 
-        connected: false, 
-        error: error.message 
-      });
-    }
+
+  } catch (err) {
+    const status = {
+      connected: false,
+      message: `MQTT Connection Error: ${err.message}`
+    };
+    global.latestMqttStatus = status;
+    if (io) io.emit('mqtt_status', status);
+    logError(`🚨 MQTT Fatal Error: ${err.message}`);
     return null;
   }
 };
 
-// Simple test MQTT connection function without nested promises
-const testMqttConnection = (config) => {
-  return new Promise((resolve) => {
-    const { brokerUrl, port, username, password, useTls } = config;
-    
-    // Create proper URL format
-    const protocol = useTls ? 'mqtts://' : 'mqtt://';
-    const url = `${protocol}${brokerUrl.replace(/^(mqtt|mqtts):\/\//, '')}`;
-    
-    const options = {
-      clientId: `test-client-${Math.random().toString(16).substring(2, 8)}`,
-      clean: true,
-      reconnectPeriod: 0, // No automatic reconnection for test
-      connectTimeout: 5000, // 5 second timeout
-      port
-    };
-
-    if (username && password) {
-      options.username = username;
-      options.password = password;
-    }
-
-    // Create a test client for one-time connection test
-    const client = mqtt.connect(url, options);
-    let resolved = false;
-    let timer = setTimeout(() => {
-      if (!resolved) {
-        client.end(true);
-        resolve(false);
-        resolved = true;
-      }
-    }, 5000);
-
-    client.on('connect', () => {
-      clearTimeout(timer);
-      if (!resolved) {
-        client.end(true);
-        resolve(true);
-        resolved = true;
-      }
-    });
-
-    client.on('error', () => {
-      clearTimeout(timer);
-      if (!resolved) {
-        client.end(true);
-        resolve(false);
-        resolved = true;
-      }
-    });
-  });
-};
-
-module.exports = {
-  connectToMqtt,
-  testMqttConnection
-};
+module.exports = { connectToMqtt };

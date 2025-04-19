@@ -3,92 +3,52 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
-const { connectMqtt } = require('./mqtt');
-const { setupApiRoutes } = require('./routes/setupApiRoutes');
-const { logInfo, logDebug, logError } = require('./utils/logger');
-const { handleMqttMessage } = require('./mqtt/messageHandler');
+const { connectToMqtt } = require('./mqtt/connection');
 const { setupSocketHandlers } = require('./socket');
+const { logInfo } = require('./utils/logger');
 
-// Configuration
+// Config
 const PORT = process.env.PORT || 8000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// ✅ Create Express app
+// Express setup
 const app = express();
-
-// Middleware
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'DELETE','PUT', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
-// ✅ Routes
+// Optional: Define routes
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-const userRoutes = require('./routes/users'); // ✅ Add this
-app.use('/api/users', userRoutes);          // ✅ And this
-
-// Create HTTP server
-const server = http.createServer(app);
-
-// Create WebSocket server
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    credentials: true
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  transports: ['polling', 'websocket']
-});
-
-// Setup API and WebSocket logic
-setupApiRoutes(app, io);
-setupSocketHandlers(io);
-
-// Connect to MQTT and broadcast status
-const mqttClient = connectMqtt(io);
-if (mqttClient) {
-  mqttClient.on('message', (topic, message) => {
-    handleMqttMessage(topic, message, mqttClient.options.topicPrefix || 'jewelry/rfid/', io);
-  });
-
-  const isConnected = mqttClient.connected;
-  io.emit('mqtt_status', {
-    connected: isConnected,
-    message: isConnected ? 'Connected to MQTT broker' : 'Connecting to MQTT broker...'
-  });
-
-  mqttClient.on('connect', () => {
-    io.emit('mqtt_status', { connected: true, message: 'Connected to MQTT broker' });
-  });
-
-  mqttClient.on('close', () => {
-    io.emit('mqtt_status', { connected: false, message: 'Disconnected from MQTT broker' });
-  });
-
-  mqttClient.on('error', (err) => {
-    io.emit('mqtt_status', { connected: false, message: `Error: ${err.message}` });
-  });
-} else {
-  io.emit('mqtt_status', { connected: false, message: 'Failed to connect to MQTT broker' });
-}
-
-// Health check
+// Health check route
 app.get('/health', (req, res) => {
-  const mqttStatus = mqttClient && mqttClient.connected ? 'connected' : 'disconnected';
-  res.status(200).send({
+  const mqttStatus = global.latestMqttStatus || { connected: false, message: 'Unknown' };
+  res.status(200).json({
     status: 'ok',
-    mqtt: mqttStatus,
+    mqtt: mqttStatus.connected ? 'connected' : 'disconnected',
+    message: mqttStatus.message,
     uptime: process.uptime()
   });
 });
 
+// HTTP + WebSocket server
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'], credentials: true }
+});
+
+// WebSocket setup
+setupSocketHandlers(io);
+
+// ✅ Connect to MQTT and pass in WebSocket
+const mqttClient = connectToMqtt(io);
+if (!mqttClient) {
+  console.error('❌ MQTT client failed to connect.');
+}
+
 // Start server
 server.listen(PORT, HOST, () => {
-  logInfo(`Server running at http://${HOST}:${PORT}`);
+  logInfo(`🚀 Server running at http://${HOST}:${PORT}`);
 });

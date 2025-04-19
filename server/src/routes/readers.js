@@ -1,5 +1,5 @@
 
-const { rfidReaders } = require('../mqtt');
+const { rfidReaders } = require('../mqtt/readerManager');
 
 module.exports = (app) => {
   // Get RFID readers

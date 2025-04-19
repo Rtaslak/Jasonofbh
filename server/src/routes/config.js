@@ -1,5 +1,4 @@
-
-const { connectMqtt } = require('../mqtt');
+const { connectToMqtt: connectMqtt } = require('../mqtt/connection');
 const { getMqttConfig, updateMqttConfig } = require('../mqtt/config');
 const { testMqttConnection } = require('../mqtt/connection');
 

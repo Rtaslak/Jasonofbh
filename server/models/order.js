@@ -13,6 +13,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       primaryKey: true
     },
+    orderNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      unique: true
+    },
     customer: DataTypes.STRING,
     email: DataTypes.STRING,
     productType: DataTypes.STRING,        // e.g., "Ring"
