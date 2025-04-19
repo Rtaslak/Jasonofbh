@@ -4,28 +4,19 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Station extends Model {
     static associate(models) {
-      // 🔗 Each station belongs to one department
+      // ✅ A Station belongs to a Department
       Station.belongsTo(models.Department, {
         foreignKey: 'departmentId',
-        as: 'department',
+        as: 'department'
       });
     }
   }
 
   Station.init({
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+    name: DataTypes.STRING,
     description: DataTypes.STRING,
-    departmentId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    antennaNumber: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    }
+    departmentId: DataTypes.INTEGER,
+    antennaNumber: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'Station',

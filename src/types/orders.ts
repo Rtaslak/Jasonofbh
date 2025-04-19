@@ -1,6 +1,6 @@
 export type Order = {
   id: string;
-  orderNumber: number; // ✅ Add this line
+  orderNumber: number;
   customer: string;
   email: string;
   createdAt: string;
@@ -53,4 +53,7 @@ export type Order = {
     department: string;
     timestamp: number;
   }>;
+
+  // ✅ Add this to support station-based filtering
+  station?: string;
 };

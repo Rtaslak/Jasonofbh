@@ -36,7 +36,8 @@ export function useStationManagement() {
       return;
     }
 
-    const safeDept = realDept as Required<Department>;
+    const safeDept = realDept;
+
 
     setDepartment({
       id: safeDept.id,

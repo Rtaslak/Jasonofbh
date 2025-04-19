@@ -7,6 +7,8 @@ const { connectToMqtt } = require('./mqtt/connection');
 const { setupSocketHandlers } = require('./socket');
 const { logInfo } = require('./utils/logger');
 
+
+
 // Config
 const PORT = process.env.PORT || 8000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -20,9 +22,12 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
+const departmentRoutes = require('./routes/departments');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/departments', departmentRoutes);
+
 
 // Health check route
 app.get('/health', (req, res) => {
